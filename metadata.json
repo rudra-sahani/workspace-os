@@ -1,0 +1,6 @@
+{
+  "name": "WorkspaceOS",
+  "description": "A premium, modular workspace management platform designed to seamlessly orchestrate events, trips, meetups, and conferences from planning to completion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

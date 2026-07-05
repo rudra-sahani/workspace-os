@@ -1,0 +1,169 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  --color-emerald-500: #10b981;
+  --color-slate-950: #020617;
+  --color-slate-900: #0f172a;
+}
+
+/* Global root color variables matching the Sleek theme specifications */
+:root {
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
+  --emerald-500: #10b981;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  background-color: #020617;
+  color: #f1f5f9;
+}
+
+/* Scrollbar customizations */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Core "Sleek Interface" Dark Mode Overrides */
+.dark, .dark-theme {
+  background-color: #020617 !important;
+}
+
+/* Glassmorphism panels for card structures, directories, and chat boxes */
+.dark .bg-white,
+.dark .bg-slate-900,
+.dark .dark\:bg-gray-900,
+.dark .dark\:bg-slate-900,
+.dark .bg-slate-900\/40,
+.dark .bg-slate-900\/50,
+.dark .bg-slate-900\/80 {
+  background: rgba(30, 41, 59, 0.4) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Stat cards with rich, deep-slate gradients */
+.dark .stat-card,
+.dark [className*="stat-card"] {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Uniform dark theme borders */
+.dark .border,
+.dark .border-gray-100,
+.dark .border-slate-100,
+.dark .dark\:border-gray-800,
+.dark .dark\:border-slate-800,
+.dark .dark\:border-slate-900,
+.dark .border-slate-900,
+.dark .border-gray-800 {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Group active, inactive tabs, side bars and sliders */
+.dark .bg-gray-100,
+.dark .dark\:bg-gray-800,
+.dark .bg-slate-100,
+.dark .dark\:bg-slate-900,
+.dark .bg-slate-100.dark\:bg-slate-900 {
+  background-color: #050b18 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Dynamic glowing active tab indication */
+.dark button[className*="bg-white"],
+.dark button[className*="dark:bg-gray-900"],
+.dark button[className*="dark:bg-slate-950"],
+.dark button[className*="active-nav"] {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #6366f1 !important;
+  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* Form inputs & interactive controls */
+.dark input, 
+.dark textarea, 
+.dark select {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f1f5f9 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.dark input:focus, 
+.dark textarea:focus, 
+.dark select:focus {
+  outline: none !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Toggle modules style */
+.module-toggle {
+  width: 40px;
+  height: 22px;
+  background: #334155;
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.module-toggle.active {
+  background: #6366f1;
+}
+.module-toggle::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: left 0.2s;
+}
+.module-toggle.active::after {
+  left: 20px;
+}
+
+/* Light mode fallback styling if the user shifts */
+.light {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+.light .bg-white {
+  background-color: #ffffff !important;
+}
+.light .border, .light .border-gray-100, .light .border-slate-100 {
+  border-color: #e2e8f0 !important;
+}
