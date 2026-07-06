@@ -5,7 +5,8 @@ import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
-
+console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
+console.log("APP_URL:", process.env.APP_URL);
 const app = express();
 const PORT = 3000;
 

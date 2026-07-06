@@ -49,30 +49,39 @@ export async function isSupabaseConfigured(): Promise<boolean> {
  * Gets or initializes the Supabase client.
  * Returns null if Supabase is not configured yet.
  */
+// export async function getSupabaseClient(): Promise<SupabaseClient | null> {
+//   if (supabaseClient) return supabaseClient;
+
+//   const config = await fetchBackendConfig();
+//   const url = config.supabaseUrl || ((import.meta as any).env?.VITE_SUPABASE_URL as string);
+//   const key = config.supabaseAnonKey || ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string);
+
+//   if (!url || !key) {
+//     console.warn('Supabase URL or Anon Key is missing. Live cloud sync is suspended. Please input your credentials in the settings panel.');
+//     return null;
+//   }
+
+//   try {
+//     supabaseClient = createClient(url, key, {
+//       auth: {
+//         persistSession: true,
+//         autoRefreshToken: true,
+//       }
+//     });
+//     return supabaseClient;
+//   } catch (err) {
+//     console.error('Failed to initialize Supabase client:', err);
+//     return null;
+//   }
+// }
+
+// export async function getSupabaseClient(): Promise<SupabaseClient | null> {
+//   // TEMPORARY: Force offline mode for demo
+//   return null;
+// }
 export async function getSupabaseClient(): Promise<SupabaseClient | null> {
-  if (supabaseClient) return supabaseClient;
-
-  const config = await fetchBackendConfig();
-  const url = config.supabaseUrl || ((import.meta as any).env?.VITE_SUPABASE_URL as string);
-  const key = config.supabaseAnonKey || ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string);
-
-  if (!url || !key) {
-    console.warn('Supabase URL or Anon Key is missing. Live cloud sync is suspended. Please input your credentials in the settings panel.');
-    return null;
-  }
-
-  try {
-    supabaseClient = createClient(url, key, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      }
-    });
-    return supabaseClient;
-  } catch (err) {
-    console.error('Failed to initialize Supabase client:', err);
-    return null;
-  }
+  console.log("OFFLINE MODE ENABLED");
+  return null;
 }
 
 /**

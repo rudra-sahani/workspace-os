@@ -91,6 +91,14 @@ export default function ParticipantDashboard({
   activeSOSAlerts,
   onShowToast,
 }: ParticipantDashboardProps) {
+
+  if (!workspace) {
+  return (
+    <div className="flex items-center justify-center min-h-screen text-white">
+      Loading workspace...
+    </div>
+  );
+}
   const [activeTab, setActiveTab] = useState<'home' | 'smartpass' | 'registration' | 'payments' | 'schedule' | 'chat' | 'documents' | 'gallery' | 'settings' | 'certificates'>('home');
 
   // Redirect if currently viewed module gets disabled dynamically
