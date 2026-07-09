@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.workspaces (
     upi_id TEXT,
     upi_qr_code TEXT,
     upi_instructions TEXT,
+    is_archived BOOLEAN DEFAULT FALSE,
     modules JSONB DEFAULT '{"registration": true, "payments": true, "qrSmartPass": true, "attendance": true, "chat": true, "gallery": true, "announcements": true, "sos": true, "liveLocation": true, "checklists": true, "schedule": true, "documents": true}'::jsonb,
     questions JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

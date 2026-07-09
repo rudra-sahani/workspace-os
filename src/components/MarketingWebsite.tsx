@@ -65,6 +65,9 @@ interface MarketingWebsiteProps {
   joinCode: string;
   setJoinCode: (code: string) => void;
   onJoinCodeSubmit: (e: React.FormEvent) => void;
+  isAuthSubmitting?: boolean;
+  isGoogleLoading?: boolean;
+  showGoogleSignIn?: boolean;
 }
 
 export default function MarketingWebsite({
@@ -88,6 +91,9 @@ export default function MarketingWebsite({
   joinCode,
   setJoinCode,
   onJoinCodeSubmit,
+  isAuthSubmitting = false,
+  isGoogleLoading = false,
+  showGoogleSignIn = false,
 }: MarketingWebsiteProps) {
 
   // Contact Page States
@@ -128,24 +134,24 @@ export default function MarketingWebsite({
             
             {/* Value Proposition Column */}
             <div className="lg:col-span-7 space-y-8 text-left">
-              <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs px-4 py-1.5 rounded-full font-bold shadow-sm shadow-indigo-500/5 animate-pulse">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
+              <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs px-4 py-1.5 rounded-full font-semibold shadow-sm shadow-indigo-500/5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                 Next-Gen Event OS for High-Scale Operations
               </div>
               
-              <div className="space-y-4">
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.1]">
+              <div className="space-y-6">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1] font-sans">
                   Everything your event needs. <br />
                   <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-500 bg-clip-text text-transparent">One powerful platform.</span>
                 </h1>
                 
-                <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed max-w-xl">
-                  WorkspaceOS is the all-in-one platform for planning, managing and running events from start to finish. Loved by colleges, NGOs, conference hosts, and trek teams.
+                <p className="text-base md:text-lg text-slate-400 font-medium leading-relaxed max-w-[500px]">
+                  WorkspaceOS is the premium all-in-one platform for planning, managing and running events from start to finish. Loved by colleges, NGOs, conference hosts, and trek teams.
                 </p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button
                   onClick={() => {
                     setAuthTab('signup');
@@ -168,7 +174,7 @@ export default function MarketingWebsite({
               </div>
 
               {/* Quick Workspace Finder (Inline Join Workspace) */}
-              <div className="pt-6 max-w-md border-t border-slate-800/80">
+              <div className="pt-8 max-w-md border-t border-slate-800/80">
                 <form onSubmit={onJoinCodeSubmit} className="flex gap-2">
                   <input
                     type="text"
@@ -188,144 +194,152 @@ export default function MarketingWebsite({
               </div>
             </div>
 
-            {/* Beautiful 3D CSS Dashboard Mockup & Overlapping Phone Mockup */}
-            <div className="lg:col-span-5 relative flex items-center justify-center mt-12 lg:mt-0 [perspective:1200px] h-[340px] md:h-[400px]">
+            {/* Beautiful Dashboard Mockup & Overlapping Phone Mockup from the Screenshot */}
+            <div className="lg:col-span-5 relative flex items-center justify-center mt-12 lg:mt-0 w-full max-w-lg mx-auto lg:max-w-none h-[300px] xs:h-[340px] sm:h-[400px] md:h-[450px] lg:h-[420px] xl:h-[460px]">
               
-              {/* Style tag injection for custom floating animations */}
-              <style>{`
-                @keyframes float-dashboard {
-                  0%, 100% { transform: rotateY(-12deg) rotateX(6deg) translateY(0px); }
-                  50% { transform: rotateY(-10deg) rotateX(4deg) translateY(-8px); }
-                }
-                @keyframes float-phone {
-                  0%, 100% { transform: translate3d(20px, 30px, 60px) rotate(6deg) translateY(0px); }
-                  50% { transform: translate3d(20px, 30px, 60px) rotate(4deg) translateY(-10px); }
-                }
-                @keyframes float-graph {
-                  0%, 100% { transform: translate3d(-10px, -40px, 100px) translateY(0px); }
-                  50% { transform: translate3d(-10px, -40px, 100px) translateY(-14px); }
-                }
-                .animate-float-dashboard {
-                  animation: float-dashboard 6s ease-in-out infinite;
-                }
-                .animate-float-phone {
-                  animation: float-phone 5s ease-in-out infinite;
-                }
-                .animate-float-graph {
-                  animation: float-graph 7s ease-in-out infinite;
-                }
-              `}</style>
-
-              {/* Outer Decorative Glows */}
-              <div className="absolute -top-12 -left-12 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
-              <div className="absolute -bottom-12 -right-12 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl" />
-
-              {/* 3D Dashboard Mockup */}
-              <div className="w-full max-w-xl bg-[#0a0f1d]/95 border border-slate-800/80 rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.95)] p-5 space-y-4 relative z-10 [transform-style:preserve-3d] animate-float-dashboard hover:shadow-indigo-500/10 transition-all duration-300">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-                    <span className="text-[10px] text-slate-500 font-mono ml-2">admin_workspace_console.sh</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-                    <span className="text-[9px] bg-slate-900 text-emerald-400 px-2 py-0.5 rounded-md border border-slate-800 font-bold">LIVE METRICS</span>
-                  </div>
-                </div>
+              {/* Inner wrapper that applies high-fidelity responsive scale so all components adapt perfectly across all screen sizes */}
+              <div className="relative w-full h-full flex items-center justify-center scale-[0.62] xs:scale-[0.7] sm:scale-[0.82] md:scale-95 lg:scale-[0.8] xl:scale-100 transition-all duration-300">
                 
-                {/* Simulated Bento Layout */}
-                <div className="grid grid-cols-12 gap-3">
-                  <div className="col-span-8 p-3.5 bg-slate-900/60 rounded-xl border border-slate-800/80 space-y-2 text-left">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Revenue Analytics</span>
-                    <div className="text-xl font-black text-white">₹8,45,200 <span className="text-[9px] text-emerald-400 font-bold">+18.4%</span></div>
-                    <div className="w-full bg-slate-850 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-indigo-500 h-full w-[82%]" />
-                    </div>
-                  </div>
-                  <div className="col-span-4 p-3.5 bg-slate-900/60 rounded-xl border border-slate-800/80 space-y-1 text-center flex flex-col justify-center">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Gate Rate</span>
-                    <div className="text-lg font-black text-emerald-400">94.6%</div>
-                    <span className="text-[8px] text-slate-500">Live Scans</span>
-                  </div>
-                </div>
+                {/* Style tag injection for subtle, professional flat floating animations */}
+                <style>{`
+                  @keyframes float-dashboard {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-6px); }
+                  }
+                  @keyframes float-phone {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-10px); }
+                  }
+                  .animate-float-dashboard {
+                    animation: float-dashboard 6s ease-in-out infinite;
+                  }
+                  .animate-float-phone {
+                    animation: float-phone 5s ease-in-out infinite;
+                  }
+                `}</style>
 
-                <div className="p-3.5 bg-slate-900/40 rounded-xl border border-slate-800/50 space-y-2.5 text-left">
-                  <div className="flex justify-between items-center text-[9px] pb-1 border-b border-slate-800/40">
-                    <span className="text-slate-400 font-bold uppercase tracking-wider">Upcoming Agenda</span>
-                    <span className="text-indigo-400 font-bold flex items-center gap-1">
-                      <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Live Sync
-                    </span>
-                  </div>
-                  <div className="space-y-1.5 text-[10px]">
-                    <div className="flex justify-between items-center bg-slate-950/80 p-2 rounded border border-slate-800/50">
-                      <span className="text-white font-medium">Opening Keynote & Pitching</span>
-                      <span className="text-slate-400">09:00 AM</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-slate-950/80 p-2 rounded border border-slate-800/50">
-                      <span className="text-white font-medium">Mentor Match Panel</span>
-                      <span className="text-indigo-400">02:30 PM</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                <div className="absolute -top-12 -left-12 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-12 -right-12 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
 
-              {/* OVERLAPPING PHONE MOCKUP (Smart Pass QR Code) */}
-              <div className="absolute -bottom-10 -right-8 w-48 bg-[#030712] border-4 border-slate-800 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-3.5 space-y-4 z-20 [transform-style:preserve-3d] animate-float-phone border-indigo-500/10">
-                {/* Speaker Grill / Notch */}
-                <div className="w-16 h-3 bg-slate-800 rounded-full mx-auto mb-1 flex items-center justify-center">
-                  <div className="w-1 h-1 bg-slate-950 rounded-full" />
-                </div>
-
-                <div className="space-y-3 bg-indigo-950/20 border border-indigo-500/10 p-3 rounded-2xl text-center shadow-inner">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-indigo-400">Smart Pass</span>
+                {/* Main Console Card Layout matching the screenshot */}
+                <div className="w-[560px] h-[400px] bg-[#070b15]/95 border border-slate-800/80 rounded-3xl p-5 space-y-4 absolute top-0 left-0 z-10 animate-float-dashboard shadow-[0_30px_100px_rgba(0,0,0,0.95)] hover:shadow-indigo-500/5 transition-all duration-300">
                   
-                  {/* Glowing QR */}
-                  <div className="w-24 h-24 bg-white p-2 rounded-xl mx-auto shadow-lg shadow-indigo-500/15 flex items-center justify-center">
-                    <QrCode className="w-full h-full text-slate-950" />
+                  {/* Top Row Grid */}
+                  <div className="grid grid-cols-12 gap-4">
+                    
+                    {/* Left Column: Gate Velocity Card (7 cols) */}
+                    <div className="col-span-7 bg-[#0b1122]/90 border border-slate-800/70 rounded-2xl p-4 flex flex-col justify-between h-[190px] text-left">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-400 tracking-wider font-sans uppercase">GATE VELOCITY</span>
+                        <span className="text-[10px] font-black text-[#10b981] font-mono tracking-tight">+284/min</span>
+                      </div>
+                      
+                      {/* Custom Bar Chart from the screenshot */}
+                      <div className="flex items-end justify-between h-20 px-1 pt-3 pb-1">
+                        <div className="w-2.5 bg-indigo-500/30 rounded-t h-[25%] transition-all" />
+                        <div className="w-2.5 bg-indigo-500/40 rounded-t h-[40%] transition-all" />
+                        <div className="w-2.5 bg-indigo-500/50 rounded-t h-[65%] transition-all" />
+                        <div className="w-2.5 bg-indigo-500/60 rounded-t h-[52%] transition-all" />
+                        <div className="w-2.5 bg-indigo-500/80 rounded-t h-[82%] transition-all" />
+                        <div className="w-2.5 bg-[#10b981] rounded-t h-[95%] shadow-[0_0_12px_rgba(16,185,129,0.4)] transition-all" />
+                      </div>
+                      
+                      {/* Bar Labels */}
+                      <div className="flex justify-between text-[9px] text-slate-500 font-sans px-0.5">
+                        <span>8 AM</span>
+                        <span>10 AM</span>
+                        <span>12 PM</span>
+                        <span>2 PM</span>
+                        <span>4 PM</span>
+                        <span>6 PM</span>
+                      </div>
+                      
+                      {/* Footer Row */}
+                      <div className="flex justify-between items-center text-[9px] text-slate-400 border-t border-slate-800/60 pt-2 mt-1">
+                        <span>Peak Ingress</span>
+                        <span className="text-white font-mono font-bold">12:05 PM</span>
+                      </div>
+                    </div>
+
+                    {/* Right Column (5 cols) */}
+                    <div className="col-span-5 flex flex-col justify-between h-[190px]">
+                      
+                      {/* Console tab row */}
+                      <div className="bg-[#0b1122]/90 border border-slate-800/70 rounded-xl px-3 py-2 flex justify-between items-center h-[45px]">
+                        <span className="text-[9px] text-[#38bdf8] font-mono">&gt; workspace_console.sh</span>
+                        <span className="text-[8px] font-bold text-[#10b981] bg-[#10b981]/10 border border-[#10b981]/20 px-1.5 py-0.5 rounded flex items-center gap-1 uppercase">
+                          <span className="w-1 h-1 bg-[#10b981] rounded-full animate-ping" />
+                          LIVE
+                        </span>
+                      </div>
+
+                      {/* Sub-cards side-by-side */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Revenue Card */}
+                        <div className="bg-[#0b1122]/90 border border-slate-800/70 rounded-xl p-3 flex flex-col justify-between h-[130px] text-left">
+                          <span className="text-[8px] font-bold text-slate-400 tracking-wider uppercase">REVENUE ANALYTICS</span>
+                          <div className="mt-2 space-y-0.5">
+                            <div className="text-xs font-black text-white leading-none">₹8,45,200</div>
+                            <div className="text-[8px] font-bold text-[#10b981] leading-none">+18.4%</div>
+                          </div>
+                          {/* Progress bar */}
+                          <div className="w-full bg-[#070b15] h-1.5 rounded-full overflow-hidden mt-2">
+                            <div className="bg-[#6366f1] h-full w-[82%]" />
+                          </div>
+                        </div>
+
+                        {/* Gate Rate Card */}
+                        <div className="bg-[#0b1122]/90 border border-slate-800/70 rounded-xl p-3 flex flex-col justify-between h-[130px] text-left">
+                          <span className="text-[8px] font-bold text-slate-400 tracking-wider uppercase">GATE RATE</span>
+                          <div className="text-base font-black text-[#10b981] mt-2">94.6%</div>
+                          <span className="text-[8px] text-slate-500">vs last event</span>
+                        </div>
+                      </div>
+
+                    </div>
                   </div>
 
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-black text-white leading-tight">Sarah Jenkins</p>
-                    <p className="text-[8px] text-indigo-300 font-mono">PASS-2026-X83</p>
+                  {/* Bottom Row: Upcoming Agenda */}
+                  <div className="bg-[#0b1122]/90 border border-slate-800/70 rounded-2xl p-4 flex flex-col justify-between h-[145px] text-left">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">UPCOMING AGENDA</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center bg-[#070b15]/60 border border-slate-800/40 rounded-xl p-2.5 px-3.5 text-[11px] text-white">
+                        <span className="font-medium">Opening Keynote & Pitching</span>
+                        <span className="text-slate-400 font-mono text-[10px]">10:00 AM</span>
+                      </div>
+                      <div className="flex justify-between items-center bg-[#070b15]/60 border border-slate-800/40 rounded-xl p-2.5 px-3.5 text-[11px] text-white">
+                        <span className="font-medium">Mentor Match Panel</span>
+                        <span className="text-slate-400 font-mono text-[10px]">02:30 PM</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="border-t border-dashed border-indigo-500/20 pt-2 flex items-center justify-between text-[8px] text-slate-400 px-1">
-                    <span>DELEGATE</span>
-                    <span className="text-emerald-400 font-bold flex items-center gap-0.5">
-                      <span className="w-1 h-1 bg-emerald-400 rounded-full animate-ping" />
-                      VERIFIED
-                    </span>
+
+                </div>
+
+                {/* OVERLAPPING PHONE MOCKUP (Smart Pass Ticket) */}
+                <div className="absolute -bottom-6 -right-6 w-[200px] bg-[#030712] border-4 border-slate-800 rounded-[32px] shadow-[0_30px_70px_rgba(0,0,0,0.95)] p-3 space-y-3 z-20 border-indigo-500/10 animate-float-phone">
+                  {/* Speaker Grill / Notch */}
+                  <div className="w-14 h-3 bg-slate-800 rounded-full mx-auto mb-1 flex items-center justify-center">
+                    <div className="w-1 h-1 bg-slate-950 rounded-full" />
+                  </div>
+
+                  {/* Smart Pass Content */}
+                  <div className="space-y-3 bg-indigo-950/20 border border-indigo-500/10 p-3 rounded-2xl text-center shadow-inner">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-indigo-400">SMART PASS</span>
+                    
+                    {/* Glowing QR Code */}
+                    <div className="w-24 h-24 bg-white p-2 rounded-xl mx-auto shadow-lg shadow-indigo-500/15 flex items-center justify-center">
+                      <QrCode className="w-full h-full text-slate-950" />
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <p className="text-[11px] font-black text-white leading-tight">Sarah Jenkins</p>
+                      <p className="text-[8px] text-indigo-300 font-mono tracking-wider">PASS-2026-X83</p>
+                    </div>
                   </div>
                 </div>
+
               </div>
-
-              {/* FLOATING ANALYTICS GRAPH */}
-              <div className="absolute -top-6 -left-16 w-52 bg-[#090e1a]/95 border border-slate-800/80 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] p-4 space-y-3 z-30 [transform-style:preserve-3d] animate-float-graph border-indigo-500/20 backdrop-blur-md">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-900">
-                  <div className="flex items-center gap-1.5">
-                    <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    <span className="text-[10px] font-black text-white uppercase tracking-wider">Gate Velocity</span>
-                  </div>
-                  <span className="text-[9px] text-emerald-400 font-mono font-bold">+284/min</span>
-                </div>
-                
-                {/* SVG Mini Chart sparkline */}
-                <div className="h-14 flex items-end justify-between gap-1 pt-2">
-                  <div className="w-1.5 bg-slate-800 rounded-t-xs h-[15%]" />
-                  <div className="w-1.5 bg-indigo-500/30 rounded-t-xs h-[30%]" />
-                  <div className="w-1.5 bg-indigo-500/50 rounded-t-xs h-[50%]" />
-                  <div className="w-1.5 bg-indigo-500/70 rounded-t-xs h-[40%]" />
-                  <div className="w-1.5 bg-indigo-500 rounded-t-xs h-[75%]" />
-                  <div className="w-1.5 bg-emerald-400 rounded-t-xs h-[95%]" />
-                </div>
-
-                <div className="flex justify-between items-center text-[9px] text-slate-400 pt-1.5 border-t border-slate-900">
-                  <span>Peak Ingress</span>
-                  <span className="text-white font-mono font-bold">12:05 PM</span>
-                </div>
-              </div>
-
             </div>
           </div>
 
@@ -1124,20 +1138,20 @@ export default function MarketingWebsite({
             
             <div className="lg:col-span-5 grid grid-cols-2 gap-4">
               <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl text-center space-y-1">
-                <div className="text-3xl font-black text-indigo-400">500K+</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">QR Passes Checked-in</div>
+                <div className="text-2xl font-black text-indigo-400">Isolated</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Workspace Sandboxing</div>
               </div>
               <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl text-center space-y-1">
-                <div className="text-3xl font-black text-indigo-400">10K+</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Workspaces</div>
+                <div className="text-2xl font-black text-indigo-400">Offline-First</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Secure QR Scans</div>
               </div>
               <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl text-center space-y-1">
-                <div className="text-3xl font-black text-indigo-400">99.9%</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">SaaS Gate Uptime</div>
+                <div className="text-2xl font-black text-indigo-400">99.9%</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Scanner Gate Uptime</div>
               </div>
               <div className="p-6 bg-[#0c1425] border border-indigo-500/25 rounded-2xl text-center space-y-1 shadow-md shadow-indigo-600/5">
-                <div className="text-3xl font-black text-emerald-400">₹40M+</div>
-                <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">UPI Collections Approved</div>
+                <div className="text-2xl font-black text-emerald-400">Real-time</div>
+                <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">UPI Approval Desk</div>
               </div>
             </div>
           </div>
@@ -1611,8 +1625,10 @@ export default function MarketingWebsite({
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-indigo-600/25 hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
+                  disabled={isAuthSubmitting}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-indigo-600/25 hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
+                  {isAuthSubmitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   {marketingPage === 'login' 
                     ? authMethod === 'magic' ? 'Send Magic Link' : 'Continue with Email'
                     : 'Create Secure Account'
@@ -1620,25 +1636,34 @@ export default function MarketingWebsite({
                 </button>
 
                 {/* Google Sign-In */}
-                <div className="relative flex py-2 items-center">
-                  <div className="flex-grow border-t border-slate-800"></div>
-                  <span className="flex-shrink mx-4 text-slate-500 text-[10px] font-bold uppercase tracking-widest">or</span>
-                  <div className="flex-grow border-t border-slate-800"></div>
-                </div>
+                {showGoogleSignIn && (
+                  <>
+                    <div className="relative flex py-2 items-center">
+                      <div className="flex-grow border-t border-slate-800"></div>
+                      <span className="flex-shrink mx-4 text-slate-500 text-[10px] font-bold uppercase tracking-widest">or</span>
+                      <div className="flex-grow border-t border-slate-800"></div>
+                    </div>
 
-                <button
-                  type="button"
-                  onClick={onGoogleLogin}
-                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold rounded-xl transition-all border border-slate-800 cursor-pointer flex items-center justify-center gap-2 hover:border-slate-700"
-                >
-                  <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                  </svg>
-                  Sign in with Google
-                </button>
+                    <button
+                      type="button"
+                      onClick={onGoogleLogin}
+                      disabled={isGoogleLoading}
+                      className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold rounded-xl transition-all border border-slate-800 cursor-pointer flex items-center justify-center gap-2 hover:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isGoogleLoading ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                        </svg>
+                      )}
+                      Sign in with Google
+                    </button>
+                  </>
+                )}
 
                 {marketingPage === 'login' && (
                   <div className="text-center pt-2">

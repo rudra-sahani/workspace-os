@@ -5,8 +5,7 @@ import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
-console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
-console.log("APP_URL:", process.env.APP_URL);
+
 const app = express();
 const PORT = 3000;
 
@@ -19,6 +18,7 @@ app.get("/api/config", (req, res) => {
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
     hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     hasResendKey: !!process.env.RESEND_API_KEY,
+    googleEnabled: process.env.SUPABASE_GOOGLE_ENABLED === "true",
   });
 });
 

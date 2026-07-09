@@ -66,6 +66,7 @@ export function mapDbWorkspace(db: any): Workspace {
     upiQrCode: db.upi_qr_code || '',
     upiInstructions: db.upi_instructions || '',
     questions: db.questions || [],
+    isArchived: !!db.is_archived,
   };
 }
 
@@ -86,6 +87,7 @@ export function mapWorkspaceToDb(ws: Workspace): any {
     upi_qr_code: ws.upiQrCode,
     upi_instructions: ws.upiInstructions,
     questions: ws.questions,
+    is_archived: !!ws.isArchived,
   };
 }
 
@@ -230,22 +232,46 @@ export class DBService {
     const supabase = await getSupabaseClient();
     if (supabase) {
       if (isGoogle) {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/`,
-            skipBrowserRedirect: true
+        try {
+          const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: `${window.location.origin}/`,
+              skipBrowserRedirect: true
+            }
+          });
+          if (error) {
+            const isUnsupported = error.message?.includes('provider is not enabled') || 
+                                  error.message?.includes('Unsupported provider') ||
+                                  error.message?.includes('not_enabled') ||
+                                  error.message?.toLowerCase().includes('provider');
+            if (isUnsupported) {
+              const friendlyError = new Error('Google Sign-In is currently unavailable. Please use email sign-in or contact the administrator.');
+              (friendlyError as any).originalError = error;
+              throw friendlyError;
+            }
+            throw error;
           }
-        });
-        if (error) throw error;
-        if (data?.url) {
-          return {
-            id: 'oauth-url',
-            email: 'oauth',
-            fullName: data.url
-          };
+          if (data?.url) {
+            return {
+              id: 'oauth-url',
+              email: 'oauth',
+              fullName: data.url
+            };
+          }
+          throw new Error('Google Sign-In failed to generate authorization URL.');
+        } catch (err: any) {
+          const isUnsupported = err.message?.includes('provider is not enabled') || 
+                                err.message?.includes('Unsupported provider') ||
+                                err.message?.includes('not_enabled') ||
+                                err.message?.toLowerCase().includes('provider');
+          if (isUnsupported) {
+            const friendlyError = new Error('Google Sign-In is currently unavailable. Please use email sign-in or contact the administrator.');
+            (friendlyError as any).originalError = err;
+            throw friendlyError;
+          }
+          throw err;
         }
-        throw new Error('Google Sign-In failed to generate authorization URL.');
       }
       
       if (isMagic) {
@@ -822,6 +848,44 @@ export class DBService {
     }
   }
 
+  static async fetchSOSAlerts(workspaceId: string): Promise<SOSAlert[]> {
+    const supabase = await getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('sos_alerts')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('id', { ascending: false });
+      if (error) throw error;
+      return (data || []).map(db => ({
+        id: db.id,
+        senderName: db.sender_name,
+        senderEmail: db.sender_email,
+        timestamp: db.timestamp || new Date().toISOString(),
+        coordinates: db.coordinates,
+        status: db.status
+      }));
+    } else {
+      const sos = getLocalData<Record<string, SOSAlert[]>>('sos', {});
+      return sos[workspaceId] || [];
+    }
+  }
+
+  static async resolveSOSAlert(workspaceId: string, alertId: string): Promise<void> {
+    const supabase = await getSupabaseClient();
+    if (supabase) {
+      await supabase.from('sos_alerts').update({ status: 'Resolved' }).eq('id', alertId);
+    } else {
+      const sos = getLocalData<Record<string, SOSAlert[]>>('sos', {});
+      if (sos[workspaceId]) {
+        sos[workspaceId] = sos[workspaceId].map(alert => 
+          alert.id === alertId ? { ...alert, status: 'Resolved' } as SOSAlert : alert
+        );
+        setLocalData('sos', sos);
+      }
+    }
+  }
+
   static async updateParticipantAnswers(workspaceId: string, participantId: string, answers: Record<string, string | string[]>): Promise<void> {
     const supabase = await getSupabaseClient();
     if (supabase) {
@@ -851,6 +915,255 @@ export class DBService {
         workspaces[idx].modules = modules;
         setLocalData('workspaces', workspaces);
       }
+    }
+  }
+
+  static async updateWorkspace(workspace: Workspace): Promise<void> {
+    const supabase = await getSupabaseClient();
+    if (supabase) {
+      const dbWs = mapWorkspaceToDb(workspace);
+      const { error } = await supabase
+        .from('workspaces')
+        .update(dbWs)
+        .eq('id', workspace.id);
+      if (error) throw error;
+    } else {
+      const workspaces = getLocalData<Workspace[]>('workspaces', INITIAL_WORKSPACES);
+      const idx = workspaces.findIndex(w => w.id === workspace.id);
+      if (idx !== -1) {
+        workspaces[idx] = workspace;
+        setLocalData('workspaces', workspaces);
+      }
+    }
+  }
+
+  static async archiveWorkspace(workspaceId: string): Promise<void> {
+    const supabase = await getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase
+        .from('workspaces')
+        .update({ is_archived: true })
+        .eq('id', workspaceId);
+      if (error) throw error;
+    } else {
+      const workspaces = getLocalData<Workspace[]>('workspaces', INITIAL_WORKSPACES);
+      const idx = workspaces.findIndex(w => w.id === workspaceId);
+      if (idx !== -1) {
+        workspaces[idx].isArchived = true;
+        setLocalData('workspaces', workspaces);
+      }
+    }
+  }
+
+  static async restoreWorkspace(workspaceId: string): Promise<void> {
+    const supabase = await getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase
+        .from('workspaces')
+        .update({ is_archived: false })
+        .eq('id', workspaceId);
+      if (error) throw error;
+    } else {
+      const workspaces = getLocalData<Workspace[]>('workspaces', INITIAL_WORKSPACES);
+      const idx = workspaces.findIndex(w => w.id === workspaceId);
+      if (idx !== -1) {
+        workspaces[idx].isArchived = false;
+        setLocalData('workspaces', workspaces);
+      }
+    }
+  }
+
+  static async deleteWorkspace(workspaceId: string): Promise<void> {
+    const supabase = await getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase
+        .from('workspaces')
+        .delete()
+        .eq('id', workspaceId);
+      if (error) throw error;
+    } else {
+      const workspaces = getLocalData<Workspace[]>('workspaces', INITIAL_WORKSPACES);
+      const filtered = workspaces.filter(w => w.id !== workspaceId);
+      setLocalData('workspaces', filtered);
+
+      // Clean up maps and cached items for this workspaceId
+      const cleanMapKey = (key: string) => {
+        try {
+          const map = getLocalData<Record<string, any>>(key, {});
+          if (map[workspaceId]) {
+            delete map[workspaceId];
+            setLocalData(key, map);
+          }
+        } catch (e) {
+          console.warn(`Failed to clean local storage key ${key}`, e);
+        }
+      };
+
+      cleanMapKey('participants');
+      cleanMapKey('announcements');
+      cleanMapKey('chats');
+      cleanMapKey('checklists');
+      cleanMapKey('gallery');
+      cleanMapKey('sos');
+
+      localStorage.removeItem(`ws_${workspaceId}_scheduleEvents`);
+      localStorage.removeItem(`ws_${workspaceId}_sponsors`);
+      localStorage.removeItem(`ws_${workspaceId}_volunteers`);
+      localStorage.removeItem(`ws_${workspaceId}_chatMessages`);
+      localStorage.removeItem(`ws_${workspaceId}_activeSOSAlerts`);
+      localStorage.removeItem(`ws_${workspaceId}_permissionsMatrix`);
+      localStorage.removeItem(`ws_${workspaceId}_integrationStatuses`);
+    }
+  }
+
+  static async duplicateWorkspace(
+    sourceWorkspaceId: string,
+    newName: string,
+    newInviteCode: string,
+    creatorEmail: string,
+    creatorName: string
+  ): Promise<Workspace> {
+    const supabase = await getSupabaseClient();
+    let sourceWs: Workspace;
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('id', sourceWorkspaceId)
+        .single();
+      if (error || !data) throw new Error('Source workspace not found');
+      sourceWs = mapDbWorkspace(data);
+    } else {
+      const workspaces = getLocalData<Workspace[]>('workspaces', INITIAL_WORKSPACES);
+      const matched = workspaces.find(w => w.id === sourceWorkspaceId);
+      if (!matched) throw new Error('Source workspace not found');
+      sourceWs = matched;
+    }
+
+    const newWorkspaceId = `ws-cloned-${Date.now()}`;
+    const clonedWs: Workspace = {
+      ...sourceWs,
+      id: newWorkspaceId,
+      name: newName,
+      inviteCode: newInviteCode.trim().toUpperCase(),
+      inviteLink: `/join/${newInviteCode.trim().toUpperCase()}`,
+      isArchived: false,
+    };
+
+    await DBService.createWorkspace(clonedWs, creatorEmail, creatorName);
+
+    try {
+      const allSettings = localStorage.getItem('saas_settings') ? JSON.parse(localStorage.getItem('saas_settings')!) : {};
+      if (allSettings[sourceWorkspaceId]) {
+        allSettings[newWorkspaceId] = {
+          ...allSettings[sourceWorkspaceId],
+          workspaceId: newWorkspaceId
+        };
+        localStorage.setItem('saas_settings', JSON.stringify(allSettings));
+      }
+
+      const allConfigs = localStorage.getItem('saas_module_configs') ? JSON.parse(localStorage.getItem('saas_module_configs')!) : {};
+      if (allConfigs[sourceWorkspaceId]) {
+        allConfigs[newWorkspaceId] = allConfigs[sourceWorkspaceId].map((c: any) => ({
+          ...c,
+          id: `mod-${c.moduleKey}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          workspaceId: newWorkspaceId
+        }));
+        localStorage.setItem('saas_module_configs', JSON.stringify(allConfigs));
+      }
+
+      const cloneLocalItem = (keySuffix: string) => {
+        const data = localStorage.getItem(`ws_${sourceWorkspaceId}_${keySuffix}`);
+        if (data) {
+          localStorage.setItem(`ws_${newWorkspaceId}_${keySuffix}`, data);
+        }
+      };
+
+      cloneLocalItem('scheduleEvents');
+      cloneLocalItem('sponsors');
+      cloneLocalItem('volunteers');
+      cloneLocalItem('permissionsMatrix');
+      cloneLocalItem('integrationStatuses');
+    } catch (e) {
+      console.warn('Failed to clone local SaaS workspace settings/configurations', e);
+    }
+
+    return clonedWs;
+  }
+
+  static async cloneWorkspaceSettings(sourceWorkspaceId: string, targetWorkspaceId: string): Promise<void> {
+    const supabase = await getSupabaseClient();
+    let sourceWs: Workspace;
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('id', sourceWorkspaceId)
+        .single();
+      if (error || !data) throw new Error('Source workspace not found');
+      sourceWs = mapDbWorkspace(data);
+
+      const { error: updateErr } = await supabase
+        .from('workspaces')
+        .update({
+          modules: sourceWs.modules,
+          questions: sourceWs.questions,
+          upi_id: sourceWs.upiId,
+          upi_instructions: sourceWs.upiInstructions,
+        })
+        .eq('id', targetWorkspaceId);
+      if (updateErr) throw updateErr;
+    } else {
+      const workspaces = getLocalData<Workspace[]>('workspaces', INITIAL_WORKSPACES);
+      const source = workspaces.find(w => w.id === sourceWorkspaceId);
+      const targetIdx = workspaces.findIndex(w => w.id === targetWorkspaceId);
+
+      if (!source) throw new Error('Source workspace not found');
+      if (targetIdx !== -1) {
+        workspaces[targetIdx].modules = source.modules;
+        workspaces[targetIdx].questions = source.questions;
+        workspaces[targetIdx].upiId = source.upiId;
+        workspaces[targetIdx].upiInstructions = source.upiInstructions;
+        setLocalData('workspaces', workspaces);
+      }
+    }
+
+    try {
+      const allSettings = localStorage.getItem('saas_settings') ? JSON.parse(localStorage.getItem('saas_settings')!) : {};
+      if (allSettings[sourceWorkspaceId]) {
+        allSettings[targetWorkspaceId] = {
+          ...allSettings[sourceWorkspaceId],
+          workspaceId: targetWorkspaceId
+        };
+        localStorage.setItem('saas_settings', JSON.stringify(allSettings));
+      }
+
+      const allConfigs = localStorage.getItem('saas_module_configs') ? JSON.parse(localStorage.getItem('saas_module_configs')!) : {};
+      if (allConfigs[sourceWorkspaceId]) {
+        allConfigs[targetWorkspaceId] = allConfigs[sourceWorkspaceId].map((c: any) => ({
+          ...c,
+          id: `mod-${c.moduleKey}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          workspaceId: targetWorkspaceId
+        }));
+        localStorage.setItem('saas_module_configs', JSON.stringify(allConfigs));
+      }
+
+      const cloneLocalItem = (keySuffix: string) => {
+        const data = localStorage.getItem(`ws_${sourceWorkspaceId}_${keySuffix}`);
+        if (data) {
+          localStorage.setItem(`ws_${targetWorkspaceId}_${keySuffix}`, data);
+        }
+      };
+
+      cloneLocalItem('scheduleEvents');
+      cloneLocalItem('sponsors');
+      cloneLocalItem('volunteers');
+      cloneLocalItem('permissionsMatrix');
+      cloneLocalItem('integrationStatuses');
+    } catch (e) {
+      console.warn('Failed to clone local SaaS configurations', e);
     }
   }
 }

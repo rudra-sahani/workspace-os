@@ -125,6 +125,7 @@ export default function App() {
   // Google Sign-In States
   const [showGoogleChooser, setShowGoogleChooser] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const [selectedGoogleEmail, setSelectedGoogleEmail] = useState('');
 
   // Marketing Navigation & Scroll states
@@ -355,7 +356,7 @@ export default function App() {
       }
 
       // 3. User is logged in, try to join
-      await DBService.joinWorkspace(workspace.id, cleanCode, currentUser.email, currentUser.fullName);
+      await DBService.joinWorkspace(currentUser.email, currentUser.fullName, workspace.id);
 
       // Successfully joined!
       addToast(`Successfully joined "${workspace.name}"!`, 'success');
@@ -464,6 +465,7 @@ export default function App() {
 
   // Auth & Cloud Initialization Listener
   useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
     async function initAuth() {
       setIsSyncing(true);
       const config = await fetchBackendConfig();
@@ -479,7 +481,7 @@ export default function App() {
       }
       setIsSyncing(false);
 
-      const unsubscribe = DBService.onAuthStateChange(async (user) => {
+      unsubscribe = DBService.onAuthStateChange(async (user) => {
         setCurrentUser(user);
         setAuthLoading(false);
         if (user) {
@@ -489,10 +491,13 @@ export default function App() {
           setActiveWorkspaceId(null);
         }
       });
-
-      return () => unsubscribe();
     }
     initAuth();
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [isCloudSyncActive]);
 
   // Load selected workspace detailed sub-resources when activeWorkspaceId changes
@@ -663,8 +668,27 @@ export default function App() {
         );
       });
       addToast('SOS Emergency Alert triggered!', 'error');
+      try {
+        const updatedSos = await DBService.fetchSOSAlerts(activeWorkspaceId);
+        setActiveSOS(updatedSos);
+      } catch (e) {
+        console.warn('Failed to update live activeSOS list', e);
+      }
     } catch (err: any) {
       addToast('Failed to trigger SOS', 'error');
+    }
+  };
+
+  const handleResolveSOSAlert = async (alertId: string) => {
+    if (!activeWorkspaceId) return;
+    try {
+      await DBService.resolveSOSAlert(activeWorkspaceId, alertId);
+      const updatedSos = await DBService.fetchSOSAlerts(activeWorkspaceId);
+      setActiveSOS(updatedSos);
+      addToast('Emergency alert marked resolved', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Failed to resolve SOS alert', 'error');
     }
   };
 
@@ -815,8 +839,12 @@ export default function App() {
   };
 
   const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
     try {
       const config = await fetchBackendConfig();
+      if (!config.googleEnabled) {
+        throw new Error('Google Sign-In is currently unavailable. Please use email sign-in or contact the administrator.');
+      }
       const hasEnvKeys = !!(config.supabaseUrl && config.supabaseAnonKey);
       const hasSessionKeys = !!(sessionStorage.getItem('manual_supabase_url') && sessionStorage.getItem('manual_supabase_key'));
       if (hasEnvKeys || hasSessionKeys) {
@@ -841,8 +869,12 @@ export default function App() {
         setShowGoogleChooser(true);
       }
     } catch (err: any) {
-      console.error('Google Login Error:', err);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Google Login Detailed Error:', err.originalError || err);
+      }
       addToast(err.message || 'Google Sign-In failed.', 'error');
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -1047,11 +1079,15 @@ export default function App() {
             joinCode={joinCode}
             setJoinCode={setJoinCode}
             onJoinCodeSubmit={handleJoinWorkspaceSubmit}
+            isAuthSubmitting={isAuthSubmitting}
+            isGoogleLoading={isGoogleLoading}
+            showGoogleSignIn={backendConfig?.googleEnabled ?? false}
             onLogin={async (e) => {
               e.preventDefault();
+              setIsAuthSubmitting(true);
               try {
                 if (authMethod === 'magic') {
-                  await DBService.signIn(authEmail, '', true);
+                  await DBService.signIn(authEmail, '', false, true);
                   setAuthMagicSent(true);
                   addToast('Simulated magic link dispatched! Check mail logs.', 'success');
                 } else {
@@ -1060,15 +1096,20 @@ export default function App() {
                 }
               } catch (err: any) {
                 addToast(err.message || 'Authentication failed. Please verify credentials.', 'error');
+              } finally {
+                setIsAuthSubmitting(false);
               }
             }}
             onSignUp={async (e) => {
               e.preventDefault();
+              setIsAuthSubmitting(true);
               try {
                 await DBService.signUp(authEmail, authPassword, authName);
                 addToast('Secure account created successfully!', 'success');
               } catch (err: any) {
                 addToast(err.message || 'Account creation failed.', 'error');
+              } finally {
+                setIsAuthSubmitting(false);
               }
             }}
             onGoogleLogin={handleGoogleLogin}
@@ -1297,6 +1338,73 @@ export default function App() {
                   }))}
                 onToggleModule={handleToggleModule}
                 onShowToast={addToast}
+                activeSOSAlerts={activeSOS}
+                onResolveSOSAlert={handleResolveSOSAlert}
+                allWorkspaces={workspaces}
+                onArchiveWorkspace={async (workspaceId) => {
+                  try {
+                    await DBService.archiveWorkspace(workspaceId);
+                    if (currentUser) {
+                      await loadUserWorkspaces(currentUser.email);
+                    }
+                    addToast('Workspace has been successfully archived!', 'success');
+                  } catch (err: any) {
+                    addToast(err.message || 'Failed to archive workspace.', 'error');
+                  }
+                }}
+                onRestoreWorkspace={async (workspaceId) => {
+                  try {
+                    await DBService.restoreWorkspace(workspaceId);
+                    if (currentUser) {
+                      await loadUserWorkspaces(currentUser.email);
+                    }
+                    addToast('Workspace restored to active operations!', 'success');
+                  } catch (err: any) {
+                    addToast(err.message || 'Failed to restore workspace.', 'error');
+                  }
+                }}
+                onDeleteWorkspace={async (workspaceId) => {
+                  try {
+                    await DBService.deleteWorkspace(workspaceId);
+                    setActiveWorkspaceId(null);
+                    if (currentUser) {
+                      await loadUserWorkspaces(currentUser.email);
+                    }
+                    addToast('Workspace was permanently deleted.', 'success');
+                  } catch (err: any) {
+                    addToast(err.message || 'Failed to delete workspace.', 'error');
+                  }
+                }}
+                onDuplicateWorkspace={async (workspaceId, newName, newInviteCode) => {
+                  try {
+                    if (!currentUser) return;
+                    const duplicated = await DBService.duplicateWorkspace(
+                      workspaceId,
+                      newName,
+                      newInviteCode,
+                      currentUser.email,
+                      currentUser.fullName
+                    );
+                    if (currentUser) {
+                      await loadUserWorkspaces(currentUser.email);
+                    }
+                    setActiveWorkspaceId(duplicated.id);
+                    addToast(`Workspace duplicated! Redirected to "${newName}".`, 'success');
+                  } catch (err: any) {
+                    addToast(err.message || 'Failed to duplicate workspace.', 'error');
+                  }
+                }}
+                onCloneSettings={async (sourceId, targetId) => {
+                  try {
+                    await DBService.cloneWorkspaceSettings(sourceId, targetId);
+                    if (currentUser) {
+                      await loadUserWorkspaces(currentUser.email);
+                    }
+                    addToast('Configuration variables cloned successfully!', 'success');
+                  } catch (err: any) {
+                    addToast(err.message || 'Failed to clone configurations.', 'error');
+                  }
+                }}
               />
             ) : (
               <ParticipantDashboard

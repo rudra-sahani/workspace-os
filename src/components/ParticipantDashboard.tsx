@@ -23,7 +23,13 @@ import {
   ChevronRight,
   Trash2,
   Edit2,
-  Award
+  Award,
+  Megaphone,
+  PhoneCall,
+  Activity,
+  Shield,
+  Heart,
+  Info
 } from 'lucide-react';
 import {
   Workspace,
@@ -49,6 +55,7 @@ import {
   NotificationService,
   StorageService
 } from '../services/SaaSServices';
+import { SmartPassService } from '../services/SmartPassService';
 
 interface ParticipantDashboardProps {
   workspace: Workspace;
@@ -91,14 +98,6 @@ export default function ParticipantDashboard({
   activeSOSAlerts,
   onShowToast,
 }: ParticipantDashboardProps) {
-
-  if (!workspace) {
-  return (
-    <div className="flex items-center justify-center min-h-screen text-white">
-      Loading workspace...
-    </div>
-  );
-}
   const [activeTab, setActiveTab] = useState<'home' | 'smartpass' | 'registration' | 'payments' | 'schedule' | 'chat' | 'documents' | 'gallery' | 'settings' | 'certificates'>('home');
 
   // Redirect if currently viewed module gets disabled dynamically
@@ -111,6 +110,7 @@ export default function ParticipantDashboard({
       chat: 'chat',
       documents: 'documents',
       gallery: 'gallery',
+      certificates: 'certificates',
     };
     const mappedModule = tabToModuleMap[activeTab];
     if (mappedModule && !workspace.modules[mappedModule]) {
@@ -133,6 +133,12 @@ export default function ParticipantDashboard({
     disclaimer: 'This pass is non-transferable and requires manual gate validation.'
   };
 
+  // Get or auto-generate pass from SmartPassService
+  let activePass = SmartPassService.getSmartPassForMember(workspace.id, participant.id);
+  if (!activePass && participant.paymentStatus === 'Paid') {
+    activePass = SmartPassService.generateSmartPass(workspace.id, participant);
+  }
+
   const certificateConfig = configs.find(c => c.moduleKey === 'certificates')?.settings || {
     title: 'Certificate of Excellence',
     subtext: 'This is awarded to {{name}} for successful completion of {{event}}.',
@@ -145,6 +151,8 @@ export default function ParticipantDashboard({
   const [paymentScreenshotInput, setPaymentScreenshotInput] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [isSOSActive, setIsSOSActive] = useState(false);
+  const [showSOSConfirm, setShowSOSConfirm] = useState(false);
 
   // Gallery
   const [photoUrl, setPhotoUrl] = useState('');
@@ -436,7 +444,7 @@ export default function ParticipantDashboard({
             </button>
           )}
 
-          {participant.paymentStatus === 'Paid' && (
+          {workspace.modules.certificates && participant.paymentStatus === 'Paid' && (
             <button
               onClick={() => setActiveTab('certificates')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-bold rounded-2xl transition-all cursor-pointer ${
@@ -477,31 +485,384 @@ export default function ParticipantDashboard({
         {/* TAB 1: FEED HOME */}
         {activeTab === 'home' && (
           <div className="space-y-6">
-            <div>
-              <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest">Active Workspace Feed</span>
-              <h2 className="text-xl font-extrabold text-white">Live Announcements</h2>
-              <p className="text-xs text-slate-400">Chronological notices published by organisers.</p>
+            
+            {/* Elegant Welcome Hero Block */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0d1527] to-[#121c35] border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl" />
+              <div className="space-y-1 z-10">
+                <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest">Active Workspace Portal</span>
+                <h2 className="text-xl font-extrabold text-white">Welcome back, {participant.name}!</h2>
+                <p className="text-xs text-slate-400">You are securely connected to <span className="text-slate-200 font-semibold">{workspace.name}</span></p>
+              </div>
+              <div className="flex items-center gap-2.5 z-10">
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border uppercase ${
+                  participant.paymentStatus === 'Paid'
+                    ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/20'
+                    : 'bg-amber-950/40 text-amber-400 border-amber-500/20'
+                }`}>
+                  ● Status: {participant.paymentStatus}
+                </span>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border uppercase ${
+                  participant.checkedIn
+                    ? 'bg-indigo-950/40 text-indigo-400 border-indigo-500/20'
+                    : 'bg-slate-900 text-slate-400 border-slate-800'
+                }`}>
+                  {participant.checkedIn ? 'Gate Checked In' : 'Gate Unchecked'}
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {announcements.map(ann => (
-                <div key={ann.id} className="p-4 bg-[#0a1122]/90 border border-slate-800 rounded-2xl space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[9px] font-black bg-indigo-950/40 text-indigo-400 px-2.5 py-0.5 rounded-full border border-indigo-500/10 uppercase">
-                        {ann.category}
-                      </span>
-                      <h4 className="text-sm font-black text-white mt-2">{ann.title}</h4>
+            {/* CRITICAL EMERGENCY SOS - STRICTLY GATED BY MODULE TOGGLE */}
+            {workspace.modules.sos && (
+              <div className={`p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden shadow-lg ${
+                isSOSActive 
+                  ? 'bg-rose-950/40 border-rose-500/40 animate-pulse' 
+                  : 'bg-slate-900/60 border-rose-950/50'
+              }`}>
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex gap-3">
+                    <div className={`p-2.5 rounded-xl ${isSOSActive ? 'bg-rose-600 text-white animate-bounce' : 'bg-rose-950/30 text-rose-500 border border-rose-500/15'}`}>
+                      <AlertTriangle className="w-5 h-5" />
                     </div>
-                    <span className="text-[10px] text-slate-500 font-bold">{ann.timestamp}</span>
+                    <div>
+                      <h4 className="text-sm font-black text-white flex items-center gap-2">
+                        Emergency Dispatch & SOS Hub
+                        {isSOSActive && <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-ping" />}
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {isSOSActive 
+                          ? 'Emergency beacon active! Organizers have been alerted of your distress status and coordinates.' 
+                          : 'Immediate assistance panel. Trigger a priority alarm to notify organizers in case of physical distress.'}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">{ann.content}</p>
+
+                  <div className="flex items-center gap-2">
+                    {isSOSActive ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSOSActive(false);
+                          if (onShowToast) onShowToast('Emergency SOS alarm deactivated.', 'info');
+                        }}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all border border-slate-700 cursor-pointer flex items-center gap-1.5"
+                      >
+                        <X className="w-3.5 h-3.5" /> Deactivate Alert
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowSOSConfirm(true)}
+                        className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Activity className="w-3.5 h-3.5 text-white animate-pulse" /> Trigger SOS Alarm
+                      </button>
+                    )}
+                  </div>
                 </div>
-              ))}
-              {announcements.length === 0 && (
-                <p className="text-xs text-slate-500 py-10 text-center">No announcements broadcasted yet.</p>
+
+                {/* Confirm Dialog */}
+                {showSOSConfirm && (
+                  <div className="mt-4 p-4 bg-slate-950/80 border border-rose-500/30 rounded-xl space-y-3">
+                    <p className="text-xs text-rose-300 font-semibold leading-relaxed">
+                      ⚠️ CONFIRM CRITICAL PANIC BROADCAST? This will immediately notify all organizers, display your GPS distress beacon on the administrator map, and activate dispatcher channels.
+                    </p>
+                    <div className="flex gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSOSActive(true);
+                          setShowSOSConfirm(false);
+                          triggerSOS();
+                          if (onShowToast) {
+                            onShowToast('🚨 Emergency SOS broadcast active! Organizers notified.', 'error');
+                          }
+                        }}
+                        className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded-lg transition-all cursor-pointer"
+                      >
+                        Yes, Broadcast Panic Alert
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowSOSConfirm(false)}
+                        className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-bold rounded-lg border border-slate-800 transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Emergency Contact Matrix */}
+                {isSOSActive && (
+                  <div className="mt-4 pt-4 border-t border-rose-950/40 grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-[11px] font-medium text-slate-300 animate-fade-in">
+                    <div className="p-3 bg-rose-950/20 rounded-xl border border-rose-500/10 flex items-center gap-2">
+                      <PhoneCall className="w-4 h-4 text-rose-400" />
+                      <div>
+                        <p className="text-[9px] text-rose-400 uppercase font-bold">First Responder Desk</p>
+                        <p className="font-mono text-white font-bold">+91 9112-9112</p>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-rose-950/20 rounded-xl border border-rose-500/10 flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-rose-400" />
+                      <div>
+                        <p className="text-[9px] text-rose-400 uppercase font-bold">Security Team Desk</p>
+                        <p className="font-mono text-white font-bold">+91 8888-7777</p>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-rose-950/20 rounded-xl border border-rose-500/10 flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-rose-400" />
+                      <div>
+                        <p className="text-[9px] text-rose-400 uppercase font-bold">On-Site Medical Desk</p>
+                        <p className="font-mono text-white font-bold">Channel-4 VHF / Dial Ext 104</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* BENTO GRID OF ENABLED COMPONENT TILES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
+              
+              {/* PANEL 1: DIGITAL SMART PASS CARD (Left Side, 5-span) */}
+              {workspace.modules.qrSmartPass && (
+                <div className="lg:col-span-5 bg-[#0a1122]/90 border border-slate-800/80 p-5 rounded-2xl flex flex-col justify-between space-y-4 shadow-md">
+                  <div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-800/40 mb-3.5">
+                      <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <QrCode className="w-3.5 h-3.5" /> MY SMART PASS CARD
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.5 bg-slate-800 text-slate-300 font-mono rounded-md">
+                        {participant.checkInCount} SCANS
+                      </span>
+                    </div>
+
+                    {participant.paymentStatus !== 'Paid' ? (
+                      <div className="p-4 bg-amber-950/20 border border-amber-500/10 text-amber-300 rounded-xl space-y-2 text-center">
+                        <AlertTriangle className="w-5 h-5 text-amber-400 mx-auto" />
+                        <p className="text-[11px] font-medium leading-relaxed">
+                          Your digital Smart Pass is locked. Complete manual UPI verification to activate checkout scanner tokens.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('payments')}
+                          className="mt-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-bold rounded-lg transition-all cursor-pointer"
+                        >
+                          Complete Payment
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-4 items-center">
+                        {smartPassConfig.showQRCode && (
+                          <div className="bg-white p-2.5 rounded-xl flex-shrink-0 border border-slate-800/10">
+                            <QrCode className="w-20 h-20 text-slate-950" />
+                          </div>
+                        )}
+                        <div className="space-y-1 truncate text-xs">
+                          <p className="font-extrabold text-white truncate">{participant.name}</p>
+                          <p className="text-slate-400 font-mono text-[10px]">TICKET: {activePass?.ticketNumber || `TK-${participant.id.slice(0,5).toUpperCase()}`}</p>
+                          <p className="text-slate-500 text-[10px] truncate">{workspace.category} Validation Gate</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('smartpass')}
+                    className="w-full py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/15 hover:border-indigo-500/30 text-[11px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    Manage Smart Pass <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
               )}
+
+              {/* PANEL 2: TIMELINE ITINERARY PREVIEW (Right Side, 7-span) */}
+              {workspace.modules.schedule && (
+                <div className="lg:col-span-7 bg-[#0a1122]/90 border border-slate-800/80 p-5 rounded-2xl flex flex-col justify-between space-y-4 shadow-md">
+                  <div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-800/40 mb-3.5">
+                      <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" /> UPCOMING SCHEDULE TIMELINE
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.5 bg-indigo-950/40 text-indigo-400 font-bold border border-indigo-500/10 rounded-md">
+                        {schedule.length} EVENTS
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 max-h-[140px] overflow-y-auto pr-1">
+                      {schedule.slice(0, 2).map((evt, idx) => (
+                        <div key={evt.id || idx} className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-xl space-y-1">
+                          <div className="flex justify-between items-center text-[9px] font-bold">
+                            <span className="text-indigo-400">{evt.time}</span>
+                            <span className="text-slate-500 uppercase">{evt.type}</span>
+                          </div>
+                          <h5 className="text-[11px] font-black text-white truncate">{evt.title}</h5>
+                          <p className="text-[10px] text-slate-400 truncate">{evt.speaker} • {evt.location}</p>
+                        </div>
+                      ))}
+                      {schedule.length === 0 && (
+                        <p className="text-[11px] text-slate-500 py-4 text-center">No timeline events scheduled yet.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('schedule')}
+                    className="w-full py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/15 hover:border-indigo-500/30 text-[11px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    View Full Schedule <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
+              {/* PANEL 3: ANNOUNCEMENTS CHRONOLOGICAL FEED (Left Side, 7-span) */}
+              {workspace.modules.announcements && (
+                <div className="lg:col-span-7 bg-[#0a1122]/90 border border-slate-800/80 p-5 rounded-2xl flex flex-col justify-between space-y-4 shadow-md">
+                  <div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-800/40 mb-3.5">
+                      <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Megaphone className="w-3.5 h-3.5" /> RECENT BULLETIN ANNOUNCEMENTS
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                      {announcements.slice(0, 2).map(ann => (
+                        <div key={ann.id} className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[8px] font-extrabold bg-indigo-950/40 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/10 uppercase">
+                              {ann.category}
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-mono">{ann.timestamp}</span>
+                          </div>
+                          <h5 className="text-[11px] font-bold text-white truncate">{ann.title}</h5>
+                          <p className="text-[11px] text-slate-300 leading-relaxed truncate">{ann.content}</p>
+                        </div>
+                      ))}
+                      {announcements.length === 0 && (
+                        <p className="text-[11px] text-slate-500 py-6 text-center">No bulletins or announcements posted yet.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {announcements.length > 2 && (
+                    <p className="text-[10px] text-slate-500 text-center font-medium">And {announcements.length - 2} more bulletin updates</p>
+                  )}
+                </div>
+              )}
+
+              {/* PANEL 4: TEAM CHAT PREVIEW & COMPOSER (Right Side, 5-span) */}
+              {workspace.modules.chat && (
+                <div className="lg:col-span-5 bg-[#0a1122]/90 border border-slate-800/80 p-5 rounded-2xl flex flex-col justify-between space-y-4 shadow-md">
+                  <div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-800/40 mb-3.5">
+                      <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5" /> LIVE CHAT CHANNEL
+                      </span>
+                    </div>
+
+                    {/* Chat previews */}
+                    <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                      {threadedMsgs.slice(-2).map(msg => (
+                        <div key={msg.id} className="text-[11px] bg-slate-900/40 p-2.5 border border-slate-800/40 rounded-xl space-y-1">
+                          <div className="flex items-center justify-between text-[9px] font-bold text-indigo-400">
+                            <span>{msg.senderName}</span>
+                            <span className="text-slate-500 font-mono">{msg.timestamp}</span>
+                          </div>
+                          <p className="text-slate-300 truncate">{msg.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('chat')}
+                    className="w-full py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/15 hover:border-indigo-500/30 text-[11px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    Join Discussion Room <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
+              {/* PANEL 5: DOCUMENTS REPOSITORY (Left Side, 6-span) */}
+              {workspace.modules.documents && (
+                <div className="lg:col-span-6 bg-[#0a1122]/90 border border-slate-800/80 p-5 rounded-2xl flex flex-col justify-between space-y-4 shadow-md">
+                  <div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-800/40 mb-3.5">
+                      <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5" /> PUBLISHED HANDBOOKS & FILES
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                      {docFiles.slice(0, 2).map(doc => (
+                        <div key={doc.id} className="flex justify-between items-center p-2 bg-slate-900/60 border border-slate-800 rounded-xl">
+                          <div className="truncate space-y-0.5 pr-2">
+                            <h6 className="text-[11px] font-black text-white truncate">{doc.title}</h6>
+                            <p className="text-[9px] text-slate-500 font-mono">{doc.fileSize} • {doc.documentType}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => alert(`Initiating download for: ${doc.title}`)}
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 rounded-lg transition-all cursor-pointer"
+                          >
+                            <Download className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('documents')}
+                    className="w-full py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/15 hover:border-indigo-500/30 text-[11px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    Access Document Room <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
+              {/* PANEL 6: PHOTO ALBUMS RECENT SNAPSHOTS (Right Side, 6-span) */}
+              {workspace.modules.gallery && (
+                <div className="lg:col-span-6 bg-[#0a1122]/90 border border-slate-800/80 p-5 rounded-2xl flex flex-col justify-between space-y-4 shadow-md">
+                  <div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-800/40 mb-3.5">
+                      <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5" /> RECENT EVENT PHOTOS
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {albumsList.slice(0, 1).map(alb => (
+                        <div key={alb.id} className="relative rounded-xl overflow-hidden h-16 border border-slate-800 group">
+                          <img src={alb.coverImage} alt="Cover" className="w-full h-full object-cover group-hover:scale-105 transition-all" />
+                          <div className="absolute inset-0 bg-black/40 p-1.5 flex items-end">
+                            <span className="text-[9px] font-extrabold text-white truncate w-full">{alb.title}</span>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="rounded-xl border border-dashed border-slate-800 flex items-center justify-center h-16 bg-slate-900/20 text-slate-500 text-[10px] font-bold">
+                        + Join Stream
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('gallery')}
+                    className="w-full py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/15 hover:border-indigo-500/30 text-[11px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    View Photos & Upload <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
             </div>
+
           </div>
         )}
 
@@ -551,8 +912,13 @@ export default function ParticipantDashboard({
                     </div>
 
                     {smartPassConfig.showQRCode && (
-                      <div className="bg-white p-3 w-36 h-36 mx-auto rounded-2xl flex items-center justify-center border border-slate-800/20 shadow-inner">
-                        <QrCode className="w-28 h-28 text-slate-950" />
+                      <div className="bg-white p-3 w-40 mx-auto rounded-2xl flex flex-col items-center justify-center border border-slate-800/20 shadow-inner">
+                        <QrCode className="w-24 h-24 text-slate-950" />
+                        {activePass && (
+                          <span className="text-[8px] font-bold font-mono text-slate-500 mt-1 break-all text-center">
+                            {activePass.qrToken}
+                          </span>
+                        )}
                       </div>
                     )}
 
@@ -560,7 +926,7 @@ export default function ParticipantDashboard({
                       <div className="grid grid-cols-2 gap-4 text-[11px] font-bold">
                         <div>
                           <span className="text-[9px] text-slate-400 block uppercase">PASS NUMBER</span>
-                          <span className="text-slate-100 font-mono">TK-{participant.id.slice(0, 5).toUpperCase()}</span>
+                          <span className="text-slate-100 font-mono">{activePass?.ticketNumber || `TK-${participant.id.slice(0, 5).toUpperCase()}`}</span>
                         </div>
                         <div>
                           <span className="text-[9px] text-slate-400 block uppercase">SCAN COUNT</span>

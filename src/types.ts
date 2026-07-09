@@ -79,6 +79,7 @@ export interface Workspace {
   upiQrCode?: string;
   upiInstructions?: string;
   questions: FormQuestion[];
+  isArchived?: boolean;
 }
 
 export interface Participant {
